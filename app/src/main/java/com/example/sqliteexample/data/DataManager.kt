@@ -5,9 +5,10 @@ import android.content.Context
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import android.util.Log
 import android.widget.Toast
 import com.example.sqliteexample.models.Customer
-import java.lang.Exception
+import kotlin.Exception
 
 class DataManager(context: Context, name: String?, factory: SQLiteDatabase.CursorFactory?, version: Int):
     SQLiteOpenHelper(context, DATABASE_NAME, factory, DATABASE_VERSION){
@@ -47,12 +48,14 @@ class DataManager(context: Context, name: String?, factory: SQLiteDatabase.Curso
 
         if (cursor.count == 0)
             Toast.makeText(mCtx, "No Records Found,", Toast.LENGTH_SHORT).show() else {
-            while (cursor.moveToNext()) {
+            cursor.moveToFirst()
+            while (!cursor.isAfterLast) {
                 val customer = Customer()
                 customer.customerID = cursor.getInt(cursor.getColumnIndex(COLUMN_CUSTOMERID))
                 customer.customerName = cursor.getString(cursor.getColumnIndex(COLUMN_CUSTOMERNAME))
                 customer.maxCredit = cursor.getDouble(cursor.getColumnIndex(COLUMN_MAXCREDIT))
                 customers.add(customer)
+                cursor.moveToNext()
             }
             Toast.makeText(mCtx, "${cursor.count.toString()} Records Found", Toast.LENGTH_SHORT)
                 .show()
@@ -74,6 +77,38 @@ class DataManager(context: Context, name: String?, factory: SQLiteDatabase.Curso
             Toast.makeText(mCtx,e.message, Toast.LENGTH_SHORT).show()
         }
         db.close()
+    }
+
+    fun deleteCustomer(customerID: Int) : Boolean{
+        //val qry = "Delete From $CUSTOMERS_TABLE_NAME where $COLUMN_CUSTOMERID = $customerID"
+        val db :SQLiteDatabase = this.writableDatabase
+        var result : Boolean = false
+        try {
+            val cursor:Int = db.delete(CUSTOMERS_TABLE_NAME, "$COLUMN_CUSTOMERID = ?", arrayOf(customerID.toString()))
+            //val cursor :Unit = db.execSQL(qry) // Have a choice of which method to use.^^^
+            result = true
+        } catch (e : Exception){
+            Log.e(ContentValues.TAG,  "Error Deleting")
+
+        }
+        db.close()
+        return result
+    }
+
+    fun updateCustomer(id : String, customerName : String, maxCredit : String) : Boolean {
+        val db: SQLiteDatabase = this.writableDatabase
+        val contentValues = ContentValues()
+        var result : Boolean = false
+        contentValues.put(COLUMN_CUSTOMERNAME, customerName)
+        contentValues.put(COLUMN_MAXCREDIT, maxCredit.toDouble())
+        try {
+            db.update(CUSTOMERS_TABLE_NAME, contentValues, "$COLUMN_CUSTOMERID = ?", arrayOf(id))
+            result = true
+        } catch (e: Exception) {
+            Log.e(ContentValues.TAG,  "Error Updating")
+            result = false
+        }
+        return result
     }
 
 }
